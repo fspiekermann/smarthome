@@ -19,6 +19,7 @@ import org.eclipse.smarthome.core.items.events.ItemEventFactory.ItemStateChanged
 import org.eclipse.smarthome.core.library.CoreItemFactory;
 import org.eclipse.smarthome.core.library.items.SwitchItem
 import org.eclipse.smarthome.core.library.types.OnOffType
+import org.eclipse.smarthome.core.library.types.RawType
 import org.eclipse.smarthome.core.types.RefreshType
 import org.eclipse.smarthome.core.types.UnDefType
 import org.eclipse.smarthome.test.OSGiTest
@@ -60,6 +61,11 @@ class ItemEventFactoryTest extends OSGiTest {
     def ITEM_STATE_EVENT_PAYLOAD = new Gson().toJson(new ItemEventPayloadBean(ITEM_STATE.getClass().getSimpleName(), ITEM_STATE.toString()))
     def ITEM_ADDED_EVENT_PAYLOAD = new Gson().toJson(ItemDTOMapper.map(ITEM))
     def ITEM_STATE_CHANGED_EVENT_PAYLOAD = new Gson().toJson(new ItemStateChangedEventPayloadBean(NEW_ITEM_STATE.getClass().getSimpleName(),NEW_ITEM_STATE.toString(),ITEM_STATE.getClass().getSimpleName(),ITEM_STATE.toString()))
+
+    //new
+    def RAW_ITEM_STATE_CHANGED_EVENT_PAYLOAD = new Gson().toJson(new ItemStateChangedEventPayloadBean(NEW_RAW_ITEM_STATE.getClass().getSimpleName(),NEW_RAW_ITEM_STATE.toFullString(),RAW_ITEM_STATE.getClass().getSimpleName(),RAW_ITEM_STATE.toFullString()))
+    def RAW_ITEM_STATE = new RawType(([1, 2, 3, 4, 5]as byte[]), RawType.DEFAULT_MIME_TYPE)
+    def NEW_RAW_ITEM_STATE = new RawType(([5, 4, 3, 2, 1]as byte[]), RawType.DEFAULT_MIME_TYPE)
 
     @Test
     void 'ItemEventFactory creates Event as ItemCommandEvent OnOffType correctly'() {
@@ -180,11 +186,28 @@ class ItemEventFactoryTest extends OSGiTest {
     @Test
     void 'ItemEventFactory creates ItemAddedEvent correctly'() {
         ItemAddedEvent event = ItemEventFactory.createAddedEvent(ITEM)
-
         assertThat event.getType(), is(ItemAddedEvent.TYPE)
         assertThat event.getTopic(), is(ITEM_ADDED_EVENT_TOPIC)
         assertThat event.getItem(), not(null)
         assertThat event.getItem().name, is(ITEM_NAME)
         assertThat event.getItem().type, is(CoreItemFactory.SWITCH)
+    }
+
+    //New Test
+    @Test
+    void 'ItemEventFactory creates GroupItemStateChangedEvent with RawTypes correctly'() {
+        Event event = factory.createEvent(GROUPITEM_CHANGED_EVENT_TYPE, GROUPITEM_STATE_CHANGED_EVENT_TOPIC, RAW_ITEM_STATE_CHANGED_EVENT_PAYLOAD, SOURCE)
+
+        assertThat event, is(instanceOf(GroupItemStateChangedEvent))
+        GroupItemStateChangedEvent groupItemStateChangedEvent = event as GroupItemStateChangedEvent
+
+        assertThat groupItemStateChangedEvent.getType(), is(GROUPITEM_CHANGED_EVENT_TYPE)
+        assertThat groupItemStateChangedEvent.getTopic(), is(GROUPITEM_STATE_CHANGED_EVENT_TOPIC)
+        assertThat groupItemStateChangedEvent.getPayload(), is(ITEM_STATE_CHANGED_EVENT_PAYLOAD)
+        assertThat groupItemStateChangedEvent.getItemName(), is(GROUP_NAME)
+        assertThat groupItemStateChangedEvent.getMemberName(), is(ITEM_NAME)
+        assertThat groupItemStateChangedEvent.getSource(), is(null)
+        assertThat groupItemStateChangedEvent.getItemState(), is(NEW_RAW_ITEM_STATE)
+        assertThat groupItemStateChangedEvent.getOldItemState(), is(RAW_ITEM_STATE)
     }
 }
